@@ -1,0 +1,20 @@
+{
+    "AB-200": {
+        "name": "Industrial Compressor",
+        "normal_temperature": [70.0, 90.0],
+        "normal_vibration": [25.0, 45.0],
+        "normal_pressure": [40.0, 60.0]
+    },
+    "XY-100": {
+        "name": "Industrial Pump", 
+        "normal_temperature": [75.0, 95.0],
+        "normal_vibration": [30.0, 50.0],
+        "normal_pressure": [45.0, 65.0]
+    },
+    "ZW-300": {
+        "name": "Industrial Conveyor",
+        "normal_temperature": [60.0, 85.0],
+        "normal_vibration": [20.0, 40.0],
+        "normal_pressure": [35.0, 55.0]
+    }
+}

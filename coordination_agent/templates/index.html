@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenix-Eye | Real-Time Monitoring Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 24px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .container {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+        #event-feed-container {
+            flex: 2;
+        }
+        #assessment-panel {
+            flex: 1;
+            position: sticky;
+            top: 24px;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        .header p {
+            font-size: 1.1rem;
+            color: #888888;
+        }
+        #event-feed-container h2, #assessment-panel h2 {
+            color: #ffffff;
+            margin-top: 0;
+            border-bottom: 1px solid #333;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        #event-feed {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .event-card {
+            background-color: #1e1e1e;
+            border-left: 5px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s forwards;
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .event-card.fire { border-color: #e53935; }
+        .event-card.spill { border-color: #fdd835; }
+        .event-card.fall { border-color: #1e88e5; }
+        .event-card.maintenance { border-color: #43a047; }
+        .event-card.machine_failure { border-color: #ff6f00; } /* Orange for machine failure */
+        .event-card.machine_error { border-color: #c62828; } /* Dark red for critical errors */
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .event-type {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .fire .event-type { color: #e53935; }
+        .spill .event-type { color: #fdd835; }
+        .fall .event-type { color: #1e88e5; }
+        .maintenance .event-type { color: #43a047; }
+        .machine_failure .event-type { color: #ff6f00; }
+        .machine_error .event-type { color: #c62828; }
+
+        .timestamp {
+            font-size: 0.9rem;
+            color: #888;
+        }
+        .event-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px 0;
+        }
+        .event-details li {
+            margin-bottom: 8px;
+            color: #bbbbbb;
+        }
+        .event-details li strong { color: #e0e0e0; }
+
+        .assessment {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 16px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            color: #a7d1ff;
+        }
+        .assessment-button {
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 12px;
+        }
+        .assessment-button:hover { background-color: #1565c0; }
+
+        .evidence-button {
+            background-color: #546e7a;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .evidence-button:hover { background-color: #455a64; }
+
+        #assessment-content .placeholder {
+            color: #888;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .assessment-title { 
+            font-weight: bold; 
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        .evidence-link {
+            color: #1e88e5;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .evidence-link:hover { text-decoration: underline; }
+
+        .card-footer {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* The Modal (background) */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            padding-top: 60px; /* Location of the box */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
+        }
+
+        /* Modal Content (image) */
+        .modal-content {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 800px;
+            animation-name: zoom;
+            animation-duration: 0.6s;
+        }
+
+        @keyframes zoom {
+            from {transform: scale(0.1)}
+            to {transform: scale(1)}
+        }
+
+        /* The Close Button */
+        .close-button {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Agenix-Eye Dashboard</h1>
+        <p>Live Event Feed from Coordinator Agent</p>
+    </div>
+
+    <div class="container">
+        <div id="event-feed-container">
+            <h2>Live Event Feed</h2>
+            <div id="event-feed"></div>
+        </div>
+        <div id="assessment-panel">
+            <h2>Assessment Details</h2>
+            <div id="assessment-content">
+                <p class="placeholder">Click 'View Assessment' on an event to see details here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Modal -->
+    <div id="evidence-modal" class="modal">
+        <span class="close-button">&times;</span>
+        <img class="modal-content" id="modal-image">
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+            const eventCache = {}; // Store full event data including assessments
+
+            const feed = document.getElementById('event-feed');
+            const assessmentContent = document.getElementById('assessment-content');
+
+            // Modal elements
+            const modal = document.getElementById('evidence-modal');
+            const modalImg = document.getElementById('modal-image');
+            const closeBtn = document.querySelector('.close-button');
+
+            closeBtn.onclick = function() {
+                modal.style.display = "none";
+            }
+
+            socket.on('connect', () => {
+                console.log('Connected to Coordinator Agent server.');
+            });
+
+            socket.on('new_event', (data) => {
+                console.log('Received new event:', data);
+
+                // More robust event type detection
+                const eventType = data.eventType || data.type || 'unknown';
+                const eventTimestamp = data.timestamp || new Date().toISOString();
+
+                // Create a unique ID for the card to prevent duplicates
+                const cardId = `card-${eventTimestamp.replace(/[:.]/g, '-')}`;
+                if (document.getElementById(cardId)) {
+                    return; // Don't add duplicate cards
+                }
+
+                const card = document.createElement('div');
+                card.className = `event-card ${eventType.toLowerCase()}`;
+                card.id = cardId;
+
+                let detailsHtml = '<ul>';
+                if (eventType === 'maintenance') {
+                    detailsHtml += `<li><strong>Problem:</strong> ${data.problem_detected}</li>`;
+                    detailsHtml += `<li><strong>Machine:</strong> ${data.machine_id}</li>`;
+                    detailsHtml += `<li><strong>Location:</strong> ${data.location}</li>`;
+                } else {
+                    detailsHtml += `<li><strong>Location:</strong> ${data.location}</li>`;
+                    detailsHtml += `<li><strong>Machine:</strong> ${data.machineId}</li>`;
+                    if (data.confidence && data.confidence !== 'N/A') {
+                        detailsHtml += `<li><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(1)}%</li>`;
+                    }
+                }
+                detailsHtml += '</ul>';
+
+                const safetyEvents = ['fire', 'fall', 'spill'];
+                let evidenceButtonHtml = '';
+                if (data.evidenceUrl && safetyEvents.includes(eventType.toLowerCase())) {
+                    evidenceButtonHtml = `<button class="evidence-button" data-url="${data.evidenceUrl}">View Evidence</button>`;
+                }
+
+                const assessmentButtonHtml = `<button class="assessment-button">View Assessment</button>`;
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="event-type">${eventType}</span>
+                        <span class="timestamp">${new Date(eventTimestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="event-details">${detailsHtml}</div>
+                    <div class="card-footer">
+                        ${evidenceButtonHtml}
+                        ${assessmentButtonHtml}
+                    </div>
+                `;
+
+                feed.prepend(card);
+
+                // Store the event data
+                eventCache[eventTimestamp] = data;
+
+                // Add click listeners for the buttons
+                if (data.evidenceUrl && safetyEvents.includes(eventType.toLowerCase())) {
+                    card.querySelector('.evidence-button').addEventListener('click', (e) => {
+                        modal.style.display = "block";
+                        modalImg.src = e.currentTarget.dataset.url;
+                    });
+                }
+                card.querySelector('.assessment-button').addEventListener('click', () => {
+                    const eventData = eventCache[eventTimestamp];
+                    if (eventData) {
+                        displayAssessment(eventData);
+                    }
+                });
+            });
+
+            socket.on('event_update', (data) => {
+                console.log('Received event update:', data);
+                // Update the cached data
+                if (eventCache[data.timestamp]) {
+                    eventCache[data.timestamp].assessment = data.assessment;
+                }
+
+                // If this event is currently being displayed in the assessment panel, update it in real-time
+                const displayedTimestamp = assessmentContent.getAttribute('data-displayed-timestamp');
+                if (displayedTimestamp === data.timestamp) {
+                    displayAssessment(eventCache[data.timestamp]);
+                }
+            });
+
+            function displayAssessment(data) {
+                assessmentContent.setAttribute('data-displayed-timestamp', data.timestamp);
+                const eventType = data.eventType || data.type || 'unknown';
+
+                let assessmentHtml = `
+                    <h3>${eventType.toUpperCase()} Event</h3>
+                    <p class="timestamp">${new Date(data.timestamp).toLocaleString()}</p>
+                    <h4>LLM Holistic Assessment:</h4>
+                    <div class="assessment">
+                        ${data.assessment || 'Awaiting analysis...'}
+                    </div>
+                `;
+                assessmentContent.innerHTML = assessmentHtml;
+            }
+        });
+    </script>
+</body>
+</html>

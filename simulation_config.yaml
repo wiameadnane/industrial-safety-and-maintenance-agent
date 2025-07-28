@@ -1,0 +1,7 @@
+# This file contains configuration for the perception layer simulation.
+video_source: "/mnt/c/Users/abder/Downloads/test9.mp4" 
+camera_id: 'Camera-01' 
+alert_cooldowns: # Time in seconds to wait before sending another alert
+  fall: 15       # A shorter cooldown for falls
+  fire: 60       # A longer cooldown for fires
+  spill: 30      # A medium cooldown for spills

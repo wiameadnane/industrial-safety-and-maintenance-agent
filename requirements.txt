@@ -1,0 +1,16 @@
+opencv-python
+numpy
+PyYAML
+requests
+openai
+Flask
+Flask-SocketIO
+python-dotenv
+langchain
+langchain-openai
+chromadb
+fastapi
+uvicorn[standard]
+roboflow
+beautifulsoup4
+markdown

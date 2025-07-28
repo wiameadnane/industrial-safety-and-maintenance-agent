@@ -1,0 +1,38 @@
+# Coordinator Agent Configuration
+
+# URL for the n8n workflow that triggers a general alert
+n8n_webhook_url: "" #"https://abderrahmanenj.app.n8n.cloud/webhook/35aecec9-a5db-4d01-b490-6feae8392f78"
+# Replace with your actual n8n webhook URL for initial alerts
+n8n_assessment_webhook_url: "YOUR_ASSESSMENT_WEBHOOK_URL_HERE" # Replace with your n8n webhook for detailed LLM assessments
+
+# Base URL for the Maintenance Agent's API
+maintenance_agent_api_url: "http://127.0.0.1:8000/process-event/"
+
+# Mapping of camera IDs to machine IDs and locations
+# This is how the Coordinator adds context to raw visual detections.
+camera_to_machine_mapping:
+  Camera-01: 
+    machine_id: "XT-500"
+    location: "Sector A, Bay 1"
+  Camera-02:
+    machine_id: "AB-200"
+    location: "Sector A, Bay 2"
+  Camera-03:
+    machine_id: "GR-750"
+    location: "Sector B, Bay 1"
+  Camera-04:
+    machine_id: "XT-500" # Example: two cameras can see the same machine
+    location: "Sector A, Bay 1"
+
+# A simulated knowledge base for MCP/RAG demonstration
+# In a real system, this would be a call to a vector database or another service.
+
+# --- LLM Configuration ---
+llm_config:
+  # The specific OpenAI model to use for reasoning.
+  model_name: "gpt-3.5-turbo"
+
+mcp_knowledge_base:
+  fire: "Emergency Protocol Alpha: 1. Activate fire suppression system. 2. Evacuate all personnel from the affected sector. 3. Notify shift supervisor."
+  spill: "Cleanup Protocol S-17: 1. Cordon off the area. 2. Use absorbent pads from spill kit #3. 3. Dispose of used materials in designated hazmat bin."
+  fall: "Medical Response Protocol M-1: 1. Do not move the individual. 2. Immediately dispatch medical team. 3. Secure the area to prevent further accidents."
