@@ -1,5 +1,6 @@
 # Agenix-Eye: Multi-Agent Industrial Safety & Maintenance System
 
+🏆 Finalist - Hackathon "Agentic AI for Industry" (Teal Technology Services)
 Agenix-Eye is an advanced, multi-agent system designed to proactively monitor and manage industrial environments. It leverages computer vision and LLM-powered reasoning to detect safety hazards, predict maintenance needs, and orchestrate intelligent, context-aware responses, all visualized on a real-time dashboard.
 
 ## Core Features
